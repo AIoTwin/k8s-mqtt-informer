@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mqtt-broker
+  namespace: simulator
+  labels:
+    app: mqtt-broker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mqtt-broker
+  template:
+    metadata:
+      labels:
+        app: mqtt-broker
+    spec:
+      containers:
+        - name: mqtt-broker
+          image: eclipse-mosquitto:latest
+          ports:
+            - containerPort: 1883
+          volumeMounts:
+            - name: mosquitto-config
+              mountPath: /mosquitto/config/mosquitto.conf
+              subPath: mosquitto.conf  # This tells Kubernetes to mount the file
+              readOnly: true
+      volumes:
+        - name: mosquitto-config
+          configMap:
+            name: mosquitto-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mqtt-broker
+  namespace: simulator
+  labels:
+    app: mqtt-broker
+spec:
+  clusterIP: None  # This creates a headless service
+  ports:
+    - port: 1883
+      targetPort: 1883
+      protocol: TCP
+  selector:
+    app: mqtt-broker
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mosquitto-config
+  namespace: simulator
+  labels:
+    app: mqtt-broker
+data:
+  mosquitto.conf: |
+    # Mosquitto MQTT configuration file
+    # Allow remote connections
+    listener 1883
+    allow_anonymous true
+    persistence true
+    persistence_location /mosquitto/data/
+    log_dest file /mosquitto/log/mosquitto.log
+    log_type all
+    log_timestamp true
+    # Disable SSL/TLS for remote connections (plain MQTT)
+    # listener 8883
+    # tls_version tlsv1.2
+    # certfile /mosquitto/certs/server.crt
+    # keyfile /mosquitto/certs/server.key

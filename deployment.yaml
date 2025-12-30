@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mqtt-informer
+  namespace: simulator
+  labels:
+    service: mqtt-informer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: mqtt-informer
+  template:
+    metadata:
+      labels:
+        service: mqtt-informer
+    spec:
+      containers:
+      - name: mqtt-informer
+        image: cilicivan96/k8s-mqtt-informer:1.5.1
+        volumeMounts: 
+            - name: secret-volume 
+              mountPath: /etc/secret-volume 
+              readOnly: true 
+        env: 
+          - name: INFORMER_NAMESPACE 
+            value: "simulator"
+          - name: INFORMER_KUBECONFIG_PATH
+            value: "/etc/secret-volume/config"
+          - name: INFORMER_MQTT_BROKER_URL
+            value: "mqtt-broker:1883"
+      volumes: 
+        - name: secret-volume 
+          secret: 
+            secretName: kbc-file
